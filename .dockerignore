@@ -1,0 +1,48 @@
+.git
+.gitattributes
+.gitignore
+.idea
+.vscode
+.DS_Store
+Thumbs.db
+
+# Docker files (not needed in image)
+docker-compose*.yml
+Dockerfile*
+docker/
+
+# Local environment files
+.env
+.env.backup
+.env.*.local
+
+# Node
+node_modules/
+
+# PHP dev tools
+vendor/
+
+# Tests
+tests/
+phpunit.xml
+.phpunit.cache/
+.phpunit.result.cache
+
+# Logs
+*.log
+storage/logs/*.log
+
+# Compiled assets (rebuilt in Docker)
+public/build/
+public/hot/
+
+# Storage uploads (managed by Docker volume)
+public/storage/
+storage/framework/cache/
+storage/framework/sessions/
+storage/framework/views/
+storage/app/public/
+
+# Misc
+README.md
+Homestead.*

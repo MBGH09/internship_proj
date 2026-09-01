@@ -1,0 +1,98 @@
+services:
+
+  # --------------------------------------------------
+  # Application (Laravel + PHP-FPM + Nginx)
+  # --------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: event_planner_app
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      APP_NAME: "Event Planner"
+      APP_ENV: production
+      APP_KEY: ${APP_KEY}
+      APP_DEBUG: "false"
+      APP_URL: http://localhost:8080
+      # Database
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: event_db
+      DB_USERNAME: event_user
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+      # Session / Cache / Queue — using database driver
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      # Mail
+      MAIL_MAILER: log
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - event_network
+    volumes:
+      - app_storage:/var/www/html/storage
+
+  # --------------------------------------------------
+  # MySQL Database
+  # --------------------------------------------------
+  db:
+    image: mysql:8.4
+    container_name: event_planner_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootsecret}
+      MYSQL_DATABASE: event_db
+      MYSQL_USER: event_user
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+    ports:
+      - "3307:3306"           # expose on 3307 to avoid conflict with local MySQL
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-rootsecret}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - event_network
+
+  # --------------------------------------------------
+  # phpMyAdmin (optional — DB admin GUI)
+  # --------------------------------------------------
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: event_planner_pma
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: event_user
+      PMA_PASSWORD: ${DB_PASSWORD:-secret}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - event_network
+
+# --------------------------------------------------
+# Volumes & Networks
+# --------------------------------------------------
+volumes:
+  db_data:
+    driver: local
+  app_storage:
+    driver: local
+
+networks:
+  event_network:
+    driver: bridge
