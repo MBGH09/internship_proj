@@ -9,7 +9,6 @@ Thumbs.db
 # Docker files (not needed in image)
 docker-compose*.yml
 Dockerfile*
-docker/
 
 # Local environment files
 .env
