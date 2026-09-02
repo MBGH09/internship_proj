@@ -73,7 +73,7 @@ jobs:
           DB_DATABASE: event_db_test
           DB_USERNAME: test_user
           DB_PASSWORD: secret
-        run: php artisan test --parallel
+        run: php artisan test
 
   # ============================================================
   # JOB 2 — Build & Push Docker image to Docker Hub
