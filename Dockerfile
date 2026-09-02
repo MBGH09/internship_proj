@@ -7,7 +7,7 @@ WORKDIR /app
 
 # Copy package files and install dependencies
 COPY package.json package-lock.json* ./
-RUN npm ci --prefer-offline
+RUN npm ci
 
 # Copy source files needed for the build
 COPY vite.config.js ./
