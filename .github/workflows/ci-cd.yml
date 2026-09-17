@@ -13,10 +13,6 @@ env:
   DOCKER_IMAGE: mbgh09/internship_proj
 
 jobs:
-
-  # ============================================================
-  # JOB 1 — Run Tests
-  # ============================================================
   test:
     name: Run Tests
     runs-on: ubuntu-latest
@@ -75,10 +71,6 @@ jobs:
           DB_PASSWORD: secret
         run: php artisan test
 
-  # ============================================================
-  # JOB 2 — Build & Push Docker image to Docker Hub
-  # (only on push to main or develop, not on PRs)
-  # ============================================================
   build-and-push:
     name: Build & Push Docker Image
     runs-on: ubuntu-latest
@@ -122,25 +114,6 @@ jobs:
 
       - name: Print image digest
         run: echo "Image pushed with digest ${{ steps.build-and-push.outputs.digest }}"
-
-  # ============================================================
-  # JOB 3 — Deploy to VPS via SSH
-  # Runs only on push to main, after a successful image push.
-  #
-  # ⚠️  NO VPS YET?
-  #   Leave the secrets below unset in GitHub → the "Check VPS
-  #   secrets" step will detect this and skip the deploy cleanly
-  #   (exit 0). CI stays green. Add the secrets when your server
-  #   is ready and every future push will auto-deploy.
-  #
-  # Required GitHub Secrets (Settings → Secrets → Actions):
-  #   VPS_HOST       — IP address or hostname of your VPS
-  #   VPS_USER       — SSH username  (e.g. ubuntu, deploy)
-  #   VPS_SSH_KEY    — Private SSH key (full content of ~/.ssh/id_rsa)
-  #   VPS_PORT       — SSH port (default 22, optional)
-  #   VPS_APP_DIR    — Absolute project path on the VPS
-  #                    (e.g. /home/ubuntu/event-planner)
-  # ============================================================
   deploy:
     name: Deploy to VPS
     runs-on: ubuntu-latest
@@ -148,12 +121,6 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
-      # ----------------------------------------------------------
-      # Guard — skip gracefully when VPS is not yet configured.
-      # Checks for the presence of VPS_HOST; if missing or empty,
-      # prints an informational message and exits with 0 so the
-      # overall workflow stays green.
-      # ----------------------------------------------------------
       - name: Check VPS secrets are configured
         id: vps-check
         env:
@@ -168,11 +135,6 @@ jobs:
             echo "✅ VPS secrets detected — proceeding with deploy."
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
-
-      # ----------------------------------------------------------
-      # Deploy — SSH into the VPS, pull the new image, restart.
-      # Skipped automatically when the guard above sets skip=true.
-      # ----------------------------------------------------------
       - name: Deploy via SSH
         if: steps.vps-check.outputs.skip == 'false'
         uses: appleboy/ssh-action@v1.2.0
@@ -183,21 +145,3 @@ jobs:
           port:     ${{ secrets.VPS_PORT || 22 }}
           script: |
             set -e
-
-            # Navigate to the project directory
-            cd "${{ secrets.VPS_APP_DIR }}"
-
-            # Authenticate with Docker Hub to pull private/rate-limited images
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" \
-              | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-
-            # Pull the freshly pushed image for the app service only
-            docker compose pull app
-
-            # Restart containers with zero-downtime rolling update
-            docker compose up -d --remove-orphans
-
-            # Clean up dangling images to reclaim disk space
-            docker image prune -f
-
-            echo "✅ Deploy complete — $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
